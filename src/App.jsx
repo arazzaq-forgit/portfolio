@@ -463,24 +463,50 @@ const ORBIT_SKILLS = [
 const PROJECTS = [
   {
     title: "RAG Pipeline",
-    kind: "Retrieval-Augmented Generation",
-    year: "2026",
+    kind: "Enterprise AI Knowledge Assistant",
+    year: "2025",
     desc: "An end-to-end RAG system that grounds LLM responses in a private document set — chunking and embedding source documents, retrieving relevant context from a vector store, and passing it to an LLM to generate accurate, source-backed answers instead of relying on the model's raw memory.",
     highlights: ["Document ingestion & chunking pipeline", "Vector search for context retrieval", "LLM-generated answers grounded in retrieved context"],
     stack: ["Python", "LangChain", "Vector DB", "LLM API"],
+    link: "https://enterprise-ai-knowledge-assistant-v.vercel.app",
   },
   {
     title: "NLP Compiler",
-    kind: "Natural Language → Structured Output",
-    year: "2026",
-    desc: "A compiler-style pipeline that parses natural language input and translates it into structured, executable output — using NLP techniques for intent and entity parsing, then a rule/grammar-based compilation stage to generate the final structured result.",
-    highlights: ["Natural language parsing (tokenization, intent/entity extraction)", "Grammar-based translation to structured output", "Modular pipeline built for extensibility"],
-    stack: ["Python", "NLP", "Parsing / Grammar design"],
+    kind: "NL → App Config Compiler",
+    year: "2025",
+    desc: "Describe an app in plain English and this pipeline compiles it end to end — extracting intent, designing the architecture, generating UI/API/DB/Auth schemas, validating cross-layer consistency, repairing issues, and proving execution.",
+    highlights: ["Natural language intent extraction", "Auto-generated UI, API, DB & Auth schemas", "Cross-layer validation with self-repair before execution"],
+    stack: ["Python", "NLP", "Pipeline orchestration"],
+    link: "https://voluble-gumption-ccc447.netlify.app",
+  },
+  {
+    title: "Smart Resource Matcher",
+    kind: "RAG-Powered Community Matching",
+    year: "2025",
+    desc: "\"Nearby\" — describe a need in plain words (food, a clinic, a shelter bed tonight) and get real, ranked community resources back with an explanation of why each one matches and whether it's open right now.",
+    highlights: ["Plain-language need → ranked resource matches", "RAG-powered retrieval over a resource index", "Location-aware, explains the reasoning behind each match"],
+    stack: ["RAG", "Python", "Vector Search"],
+    link: "https://smart-resource-matcher.vercel.app",
+  },
+  {
+    title: "Smart Stadium Copilot",
+    kind: "GenAI Wayfinding & Accessibility",
+    year: "2025",
+    desc: "An explainable GenAI assistant built for FIFA World Cup 2026 fans — helping people navigate stadiums and find accessible routes, seating, and amenities with clear, understandable reasoning behind every suggestion.",
+    highlights: ["Explainable GenAI wayfinding", "Accessibility-first navigation", "Built for large-scale, high-traffic event conditions"],
+    stack: ["GenAI", "React", "Wayfinding logic"],
+    link: "https://smart-stadium-copilot-ihio.vercel.app",
   },
 ];
-
-const PROJECT_CATS = ["All", "RAG", "NLP"];
-const PROJECT_CAT_MAP = { "RAG Pipeline": "RAG", "NLP Compiler": "NLP" };
+ 
+const PROJECT_CATS = ["All", "RAG", "NLP", "GenAI"];
+const PROJECT_CAT_MAP = {
+  "RAG Pipeline": "RAG",
+  "NLP Compiler": "NLP",
+  "Smart Resource Matcher": "RAG",
+  "Smart Stadium Copilot": "GenAI",
+};
+ 
 
 const CERTS = [];
 const CERT_CATS = ["All"];
