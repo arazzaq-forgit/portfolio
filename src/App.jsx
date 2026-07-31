@@ -506,7 +506,6 @@ const PROJECT_CAT_MAP = {
   "Smart Resource Matcher": "RAG",
   "Smart Stadium Copilot": "GenAI",
 };
- 
 
 const CERTS = [];
 const CERT_CATS = ["All"];
@@ -700,12 +699,12 @@ export default function Portfolio() {
             <Magnetic as="a" href="#work" className="btn-primary">
               View work <ArrowUpRight size={15} />
             </Magnetic>
-            <Magnetic as="a" href="/resume.pdf" className="btn-ghost">
+            <Magnetic as="a" href="#" className="btn-ghost">
               <Download size={15} /> Resume
             </Magnetic>
-            <Magnetic as="a" href="https://github.com/arazzaq-forgit" className="icon-btn" aria-label="GitHub"><GithubIcon size={16} /></Magnetic>
-            <Magnetic as="a" href="https://linkedin.com/in/mohd-abdul-razzaq" className="icon-btn" aria-label="LinkedIn"><LinkedinIcon size={16} /></Magnetic>
-            <Magnetic as="a" href="mailto:ajrqqf@gmail.com" className="icon-btn" aria-label="Email"><Mail size={16} /></Magnetic>
+            <Magnetic as="a" href="#" className="icon-btn" aria-label="GitHub"><GithubIcon size={16} /></Magnetic>
+            <Magnetic as="a" href="#" className="icon-btn" aria-label="LinkedIn"><LinkedinIcon size={16} /></Magnetic>
+            <Magnetic as="a" href="mailto:hello@example.com" className="icon-btn" aria-label="Email"><Mail size={16} /></Magnetic>
           </div>
         </Reveal>
 
@@ -715,7 +714,7 @@ export default function Portfolio() {
             <div><CountUp to={5} /><div className="stat-label">years experience</div></div>
             <div><CountUp to={40} suffix="+" /><div className="stat-label">production PRs merged / mo</div></div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#8A8FA3", fontSize: 13 }}>
-              <MapPin size={14} /> Remote ·  Hyderabad, India
+              <MapPin size={14} /> Remote · Bay Area
             </div>
           </div>
         </Reveal>
@@ -838,7 +837,9 @@ export default function Portfolio() {
                     <div className="mono" style={{ fontSize: 11.5, color: "#8A8FA3", marginBottom: 6 }}>{p.kind} · {p.year}</div>
                     <div className="display" style={{ fontSize: 22, fontWeight: 600 }}>{p.title}</div>
                   </div>
-                  <ExternalLink size={16} color="#8A8FA3" />
+                  <a href={p.link} target="_blank" rel="noopener noreferrer" aria-label={`Open ${p.title} live demo`}>
+                    <ExternalLink size={16} color="#8A8FA3" />
+                  </a>
                 </div>
                 <p style={{ color: "#A8ADC0", fontSize: 14, margin: "14px 0" }}>{p.desc}</p>
                 <ul style={{ margin: "0 0 16px", paddingLeft: 18, display: "grid", gap: 6 }}>
@@ -846,8 +847,13 @@ export default function Portfolio() {
                     <li key={h} style={{ color: "#C9CDE0", fontSize: 13 }}>{h}</li>
                   ))}
                 </ul>
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
                   {p.stack.map((s) => <span key={s} className="tag-chip small">{s}</span>)}
+                </div>
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14 }}>
+                  <a href={p.link} target="_blank" rel="noopener noreferrer" className="nav-link" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--accent, #22D3EE)" }}>
+                    View live demo <ExternalLink size={12} />
+                  </a>
                 </div>
               </TiltCard>
             </Reveal>
@@ -934,9 +940,9 @@ export default function Portfolio() {
 
         <Reveal delay={0.14}>
           <div style={{ display: "flex", gap: 22, marginTop: 30, flexWrap: "wrap" }}>
-            <a href="mailto:ajrqqf@gmail.com" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><Mail size={14} /> hello@example.com</a>
-            <a href="https://github.com/arazzaq-forgit" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><GithubIcon size={14} /> github.com/yourname</a>
-            <a href="https://linkedin.com/in/mohd-abdul-razzaq" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><LinkedinIcon size={14} /> linkedin.com/in/yourname</a>
+            <a href="mailto:hello@example.com" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><Mail size={14} /> hello@example.com</a>
+            <a href="#" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><GithubIcon size={14} /> github.com/yourname</a>
+            <a href="#" className="nav-link" style={{ display: "flex", alignItems: "center", gap: 6 }}><LinkedinIcon size={14} /> linkedin.com/in/yourname</a>
           </div>
         </Reveal>
       </section>
