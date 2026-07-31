@@ -498,7 +498,7 @@ const PROJECTS = [
     link: "https://smart-stadium-copilot-ihio.vercel.app",
   },
 ];
- 
+
 const PROJECT_CATS = ["All", "RAG", "NLP", "GenAI"];
 const PROJECT_CAT_MAP = {
   "RAG Pipeline": "RAG",
