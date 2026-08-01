@@ -253,6 +253,306 @@ function CustomCursor() {
 }
 
 /* ============================================================
+   COMMAND CENTER INTRO — cinematic boot sequence
+   gate -> boot (typed terminal) -> glitch -> tunnel (canvas flythrough)
+   -> vault (hex rings + scan) -> doors (slide open) -> caption -> done
+============================================================ */
+const BOOT_LINES = [
+  "INITIALIZING QUANTUM CORE...",
+  "ESTABLISHING SECURE CONNECTION...",
+  "LOADING NEURAL INTELLIGENCE...",
+  "SYNCHRONIZING AI AGENTS...",
+  "ACTIVATING CYBER DEFENSE GRID...",
+  "ACCESS GRANTED.",
+];
+const CODE_FRAGMENTS = ["0x4F2A9C", "DRONE-07 ONLINE", "TLS://SECURE", "AES-256", "NODE_SYNC", "SAT-LINK OK", "PACKET::OK", "0xA1B2C3"];
+
+function beep(ctx, freq = 880, dur = 0.07) {
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+
+function DataTunnel() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let raf, particles, frags, t = 0;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    particles = Array.from({ length: 90 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      dist: Math.random() * 60,
+      speed: 1 + Math.random() * 2,
+      warn: Math.random() < 0.08,
+    }));
+    frags = Array.from({ length: 10 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      text: CODE_FRAGMENTS[Math.floor(Math.random() * CODE_FRAGMENTS.length)],
+      life: Math.random() * 60,
+    }));
+    const draw = () => {
+      t += 1;
+      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+      const accel = 1 + Math.min(3, t / 60);
+      ctx.fillStyle = "rgba(3,4,5,0.28)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p) => {
+        const px = cx + Math.cos(p.angle) * p.dist;
+        const py = cy + Math.sin(p.angle) * p.dist;
+        p.dist += p.speed * accel;
+        const nx = cx + Math.cos(p.angle) * p.dist;
+        const ny = cy + Math.sin(p.angle) * p.dist;
+        ctx.strokeStyle = p.warn ? "rgba(255,80,80,0.6)" : "rgba(80,220,255,0.55)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(nx, ny);
+        ctx.stroke();
+        if (p.dist > Math.max(window.innerWidth, window.innerHeight) * 0.75) {
+          p.dist = 0;
+          p.angle = Math.random() * Math.PI * 2;
+        }
+      });
+
+      ctx.font = "11px 'JetBrains Mono', monospace";
+      frags.forEach((f) => {
+        f.life -= 1;
+        if (f.life <= 0) {
+          f.x = Math.random() * window.innerWidth;
+          f.y = Math.random() * window.innerHeight;
+          f.text = CODE_FRAGMENTS[Math.floor(Math.random() * CODE_FRAGMENTS.length)];
+          f.life = 40 + Math.random() * 60;
+        }
+        ctx.fillStyle = "rgba(120,230,255,0.35)";
+        ctx.fillText(f.text, f.x, f.y);
+      });
+
+      if (Math.random() < 0.015) {
+        ctx.fillStyle = "rgba(255,60,60,0.06)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+  return <canvas ref={canvasRef} className="tunnel-canvas" />;
+}
+
+function HexVault() {
+  const hexes = [
+    { pts: "50,25 71.65,37.5 71.65,62.5 50,75 28.35,62.5 28.35,37.5", cls: "hex-a" },
+    { pts: "50,15 80.31,32.5 80.31,67.5 50,85 19.69,67.5 19.69,32.5", cls: "hex-b" },
+    { pts: "50,5 88.97,27.5 88.97,72.5 50,95 11.03,72.5 11.03,27.5", cls: "hex-c" },
+  ];
+  return (
+    <div className="hex-vault">
+      <svg viewBox="0 0 100 100" className="hex-svg">
+        {hexes.map((h) => (
+          <polygon key={h.cls} points={h.pts} className={`hex-ring ${h.cls}`} fill="none" />
+        ))}
+      </svg>
+      <div className="vault-scanner">
+        <div className="scan-line" />
+      </div>
+    </div>
+  );
+}
+
+function CommandCenterIntro({ onDone }) {
+  const [phase, setPhase] = useState("gate"); // gate, boot, glitch, tunnel, vault, doors, caption
+  const [lines, setLines] = useState([]);
+  const [typing, setTyping] = useState("");
+  const [vaultMsg, setVaultMsg] = useState("");
+  const [soundOn, setSoundOn] = useState(false);
+  const audioCtx = useRef(null);
+  const skippedRef = useRef(false);
+
+  useEffect(() => {
+    let already = false;
+    try { already = sessionStorage.getItem("introDone") === "1"; } catch (e) {}
+    if (already || reducedMotion()) {
+      onDone();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const finish = useCallback(() => {
+    try { sessionStorage.setItem("introDone", "1"); } catch (e) {}
+    onDone();
+  }, [onDone]);
+
+  const begin = () => {
+    if (soundOn) {
+      try {
+        audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {}
+    }
+    setPhase("boot");
+  };
+
+  const skip = () => {
+    skippedRef.current = true;
+    document.body.style.overflow = "";
+    finish();
+  };
+
+  useEffect(() => {
+    if (phase !== "boot") return;
+    let lineIdx = 0, charIdx = 0, cancelled = false;
+    const typeNext = () => {
+      if (cancelled || lineIdx >= BOOT_LINES.length) return;
+      const full = BOOT_LINES[lineIdx];
+      if (charIdx <= full.length) {
+        setTyping(full.slice(0, charIdx));
+        charIdx += 1;
+        setTimeout(typeNext, 22);
+      } else {
+        if (soundOn && audioCtx.current) beep(audioCtx.current, lineIdx === BOOT_LINES.length - 1 ? 1200 : 720);
+        setLines((prev) => [...prev, full]);
+        setTyping("");
+        lineIdx += 1;
+        charIdx = 0;
+        if (lineIdx < BOOT_LINES.length) {
+          setTimeout(typeNext, 260);
+        } else {
+          setTimeout(() => !cancelled && setPhase("glitch"), 500);
+        }
+      }
+    };
+    typeNext();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "glitch") return;
+    const t = setTimeout(() => setPhase("tunnel"), 480);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "tunnel") return;
+    const t = setTimeout(() => setPhase("vault"), 1900);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "vault") return;
+    const t1 = setTimeout(() => setVaultMsg("VERIFYING IDENTITY..."), 100);
+    const t2 = setTimeout(() => setVaultMsg("IDENTITY VERIFIED"), 1000);
+    const t3 = setTimeout(() => {
+      setVaultMsg("WELCOME, COMMANDER");
+      if (soundOn && "speechSynthesis" in window) {
+        try {
+          const u = new SpeechSynthesisUtterance("Identity verified. Welcome, Commander.");
+          u.pitch = 0.75;
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch (e) {}
+      }
+    }, 1650);
+    const t4 = setTimeout(() => {
+      document.body.style.overflow = "";
+      setPhase("doors");
+    }, 2650);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "doors") return;
+    const t = setTimeout(() => setPhase("caption"), 900);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "caption") return;
+    const t = setTimeout(() => finish(), 2200);
+    return () => clearTimeout(t);
+  }, [phase, finish]);
+
+  useEffect(() => {
+    document.body.style.overflow = phase === "doors" || phase === "caption" ? "" : "hidden";
+  }, [phase]);
+
+  const overlayDone = phase === "doors" || phase === "caption";
+
+  return (
+    <div className={`cc-intro cc-${phase}`} style={{ pointerEvents: overlayDone ? "none" : "auto" }}>
+      {phase !== "doors" && phase !== "caption" && (
+        <button className="cc-skip" onClick={skip}>Skip intro →</button>
+      )}
+
+      {phase === "gate" && (
+        <div className="cc-gate-panel">
+          <div className="cc-gate-pulse" />
+          <div className="display cc-gate-title">SYSTEM STANDBY</div>
+          <button className="cc-enter-btn" onClick={begin}>Click to Initiate</button>
+          <button className="cc-sound-toggle" onClick={() => setSoundOn((s) => !s)} aria-label="Toggle sound">
+            {soundOn ? "🔊 Sound on" : "🔇 Sound off"}
+          </button>
+        </div>
+      )}
+
+      {phase === "boot" && (
+        <div className="cc-terminal mono">
+          {lines.map((l, i) => (
+            <div key={i} className={l === "ACCESS GRANTED." ? "cc-line cc-line-final" : "cc-line"}>{l}</div>
+          ))}
+          <div className="cc-line">{typing}<span className="cc-cursor">_</span></div>
+        </div>
+      )}
+
+      {phase === "glitch" && <div className="cc-glitch-panel" />}
+
+      {phase === "tunnel" && <DataTunnel />}
+
+      {phase === "vault" && (
+        <div className="cc-vault-wrap">
+          <HexVault />
+          <div className="mono cc-vault-msg">{vaultMsg}</div>
+        </div>
+      )}
+
+      {(phase === "doors" || phase === "caption") && (
+        <>
+          <div className="cc-door cc-door-l" />
+          <div className="cc-door cc-door-r" />
+          {phase === "caption" && (
+            <div className="cc-caption-box glass">
+              <div className="display">This is not a portfolio.</div>
+              <div className="display" style={{ color: "var(--accent, #22D3EE)" }}>This is the operating system behind intelligent solutions.</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    MAGNETIC WRAPPER
 ============================================================ */
 function Magnetic({ as: Tag = "button", strength = 16, className = "", style = {}, children, ...rest }) {
@@ -580,6 +880,7 @@ function CommandPalette({ open, onClose }) {
 ============================================================ */
 export default function Portfolio() {
   useFonts();
+  const [loading, setLoading] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scrollPct, setScrollPct] = useState(0);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -629,6 +930,7 @@ export default function Portfolio() {
   return (
     <div style={{ background: "#030405", color: "#F3F4F8", minHeight: "100vh", fontFamily: "Inter, sans-serif", position: "relative", overflowX: "hidden" }}>
       <GlobalStyle />
+      {loading && <CommandCenterIntro onDone={() => setLoading(false)} />}
       <BackgroundFX />
       <AuroraBlobs />
       <CustomCursor />
@@ -1117,6 +1419,94 @@ function GlobalStyle() {
         color: #A8ADC0; transition: background 0.2s, color 0.2s, transform 0.2s;
       }
       .dock-item:hover { background: rgba(255,255,255,0.08); color: #F3F4F8; transform: translateY(-3px); }
+
+      .cc-intro { position: fixed; inset: 0; z-index: 200; background: #030405; overflow: hidden; }
+      .cc-skip {
+        position: absolute; bottom: 22px; right: 24px; z-index: 20;
+        background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #8A8FA3;
+        font-family: 'JetBrains Mono', monospace; font-size: 11.5px; padding: 7px 13px; border-radius: 999px;
+      }
+      .cc-skip:hover { color: #F3F4F8; border-color: rgba(255,255,255,0.3); }
+
+      .cc-gate-panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+      .cc-gate-pulse {
+        width: 90px; height: 90px; border-radius: 50%; border: 1px solid var(--accent, #22D3EE);
+        box-shadow: 0 0 40px var(--accent, #22D3EE); animation: gate-pulse 2.2s ease-in-out infinite;
+      }
+      @keyframes gate-pulse { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.3); opacity: 1; } }
+      .cc-gate-title { font-size: 14px; letter-spacing: 0.3em; color: #8A8FA3; }
+      .cc-enter-btn {
+        background: linear-gradient(90deg, var(--accent, #22D3EE), var(--accent2, #7C5CFC)); color: #05060A;
+        font-weight: 600; font-size: 14px; padding: 13px 26px; border-radius: 10px; border: none;
+      }
+      .cc-sound-toggle { background: transparent; border: none; color: #4a4f63; font-size: 12px; }
+
+      .cc-terminal {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        width: min(560px, 86vw); font-size: 14px; color: #7ee6ff;
+      }
+      .cc-line { padding: 3px 0; opacity: 0.85; }
+      .cc-line-final { color: var(--accent, #22D3EE); font-weight: 600; }
+      .cc-cursor { animation: blink 0.9s step-start infinite; }
+
+      .cc-glitch-panel {
+        position: absolute; inset: 0; background: #030405;
+        animation: cc-glitch 0.48s steps(2, end);
+      }
+      @keyframes cc-glitch {
+        0% { filter: hue-rotate(0deg); transform: translate(0,0); }
+        20% { transform: translate(-6px, 3px); filter: hue-rotate(90deg); }
+        40% { transform: translate(6px, -3px); filter: hue-rotate(-90deg); }
+        60% { transform: translate(-4px, 0); }
+        80% { transform: translate(4px, 2px); }
+        100% { transform: translate(0,0); filter: hue-rotate(0deg); }
+      }
+
+      .tunnel-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+      .cc-vault-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
+      .hex-vault { position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+      .hex-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .hex-ring { stroke-width: 0.6; transform-origin: 50% 50%; }
+      .hex-a { stroke: var(--accent, #22D3EE); opacity: 0.9; animation: hex-spin-cw 6s linear infinite; }
+      .hex-b { stroke: var(--accent2, #7C5CFC); opacity: 0.6; animation: hex-spin-ccw 9s linear infinite; }
+      .hex-c { stroke: #C9CDE0; opacity: 0.35; animation: hex-spin-cw 13s linear infinite; }
+      @keyframes hex-spin-cw { to { transform: rotate(360deg); } }
+      @keyframes hex-spin-ccw { to { transform: rotate(-360deg); } }
+      .vault-scanner {
+        width: 120px; height: 120px; border-radius: 50%; overflow: hidden; position: relative;
+        background: radial-gradient(circle, rgba(34,211,238,0.08), transparent); border: 1px solid rgba(255,255,255,0.15);
+      }
+      .scan-line {
+        position: absolute; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, transparent, var(--accent, #22D3EE), transparent);
+        animation: scan-move 1.6s linear infinite; box-shadow: 0 0 12px var(--accent, #22D3EE);
+      }
+      @keyframes scan-move { 0% { top: 0%; } 100% { top: 100%; } }
+      .cc-vault-msg { font-size: 12.5px; letter-spacing: 0.16em; color: var(--accent, #22D3EE); min-height: 16px; }
+
+      .cc-door { position: absolute; top: 0; bottom: 0; width: 50%; background: #030405; z-index: 10; transition: transform 0.9s cubic-bezier(.76,0,.24,1); border-color: rgba(255,255,255,0.06); }
+      .cc-door-l { left: 0; border-right: 1px solid rgba(255,255,255,0.08); }
+      .cc-door-r { right: 0; border-left: 1px solid rgba(255,255,255,0.08); }
+      .cc-doors .cc-door-l, .cc-caption .cc-door-l { transform: translateX(-100%); }
+      .cc-doors .cc-door-r, .cc-caption .cc-door-r { transform: translateX(100%); }
+
+      .cc-caption-box {
+        position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%);
+        padding: 18px 26px; border-radius: 14px; text-align: center; max-width: 520px;
+        animation: cc-caption-fade 2.2s ease-in-out; z-index: 20;
+      }
+      .cc-caption-box .display { font-size: 15px; line-height: 1.5; }
+      @keyframes cc-caption-fade {
+        0% { opacity: 0; transform: translate(-50%, 10px); }
+        15% { opacity: 1; transform: translate(-50%, 0); }
+        80% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .cc-intro { display: none; }
+      }
 
       @media (max-width: 760px) {
         .hide-mobile { display: none; }
