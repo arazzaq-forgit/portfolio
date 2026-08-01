@@ -281,7 +281,7 @@ function beep(ctx, freq = 880, dur = 0.07) {
   } catch (e) {}
 }
 
-const MATRIX_CHARS = "01アイウエオカキクケコサシスセソ0123456789ABCDEF$#%&";
+const MATRIX_CHARS = "0123456789";
 
 function MatrixRain({ intense = false }) {
   const canvasRef = useRef(null);
@@ -301,7 +301,7 @@ function MatrixRain({ intense = false }) {
     window.addEventListener("resize", setup);
 
     const draw = () => {
-      const speed = intense ? 1.6 : 1;
+      const speed = intense ? 0.7 : 0.4;
       const fade = intense ? 0.1 : 0.14;
       ctx.fillStyle = `rgba(2,6,3,${fade})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -319,10 +319,10 @@ function MatrixRain({ intense = false }) {
         ctx.fillStyle = intense ? "rgba(0,255,110,0.9)" : "rgba(0,220,100,0.6)";
         ctx.fillText(MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)], x, y - fontSize);
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.985) {
           drops[i] = 0;
         }
-        drops[i] += speed * (0.6 + Math.random() * 0.5);
+        drops[i] += speed * (0.5 + Math.random() * 0.4);
       }
       raf = requestAnimationFrame(draw);
     };
@@ -477,7 +477,9 @@ function CommandCenterIntro({ onDone }) {
 
   return (
     <div className={`cc-intro cc-${phase}`} style={{ pointerEvents: overlayDone ? "none" : "auto" }}>
-      <MatrixRain intense={phase === "tunnel"} />
+      {(phase === "boot" || phase === "glitch" || phase === "tunnel") && (
+        <MatrixRain intense={phase === "tunnel"} />
+      )}
       <div className="cc-scanlines" />
       <div className="cc-vignette" />
 
