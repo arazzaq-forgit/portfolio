@@ -265,7 +265,6 @@ const BOOT_LINES = [
   "ACTIVATING CYBER DEFENSE GRID...",
   "ACCESS GRANTED.",
 ];
-const CODE_FRAGMENTS = ["0x4F2A9C", "DRONE-07 ONLINE", "TLS://SECURE", "AES-256", "NODE_SYNC", "SAT-LINK OK", "PACKET::OK", "0xA1B2C3"];
 
 function beep(ctx, freq = 880, dur = 0.07) {
   try {
@@ -282,82 +281,59 @@ function beep(ctx, freq = 880, dur = 0.07) {
   } catch (e) {}
 }
 
-function DataTunnel() {
+const MATRIX_CHARS = "01アイウエオカキクケコサシスセソ0123456789ABCDEF$#%&";
+
+function MatrixRain({ intense = false }) {
   const canvasRef = useRef(null);
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    let raf, particles, frags, t = 0;
-    const resize = () => {
+    let raf, cols, drops, fontSize;
+
+    const setup = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      fontSize = 16;
+      cols = Math.ceil(canvas.width / fontSize);
+      drops = Array.from({ length: cols }, () => Math.random() * -canvas.height / fontSize);
     };
-    resize();
-    window.addEventListener("resize", resize);
-    particles = Array.from({ length: 90 }, () => ({
-      angle: Math.random() * Math.PI * 2,
-      dist: Math.random() * 60,
-      speed: 1 + Math.random() * 2,
-      warn: Math.random() < 0.08,
-    }));
-    frags = Array.from({ length: 10 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      text: CODE_FRAGMENTS[Math.floor(Math.random() * CODE_FRAGMENTS.length)],
-      life: Math.random() * 60,
-    }));
+    setup();
+    window.addEventListener("resize", setup);
+
     const draw = () => {
-      t += 1;
-      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-      const accel = 1 + Math.min(3, t / 60);
-      ctx.fillStyle = "rgba(3,4,5,0.28)";
+      const speed = intense ? 1.6 : 1;
+      const fade = intense ? 0.1 : 0.14;
+      ctx.fillStyle = `rgba(2,6,3,${fade})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${fontSize}px 'JetBrains Mono', monospace`;
 
-      particles.forEach((p) => {
-        const px = cx + Math.cos(p.angle) * p.dist;
-        const py = cy + Math.sin(p.angle) * p.dist;
-        p.dist += p.speed * accel;
-        const nx = cx + Math.cos(p.angle) * p.dist;
-        const ny = cy + Math.sin(p.angle) * p.dist;
-        ctx.strokeStyle = p.warn ? "rgba(255,80,80,0.6)" : "rgba(80,220,255,0.55)";
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-        if (p.dist > Math.max(window.innerWidth, window.innerHeight) * 0.75) {
-          p.dist = 0;
-          p.angle = Math.random() * Math.PI * 2;
+      for (let i = 0; i < cols; i++) {
+        const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        ctx.fillStyle = "#c8ffd9";
+        ctx.shadowColor = "#00ff6a";
+        ctx.shadowBlur = intense ? 8 : 4;
+        ctx.fillText(char, x, y);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = intense ? "rgba(0,255,110,0.9)" : "rgba(0,220,100,0.6)";
+        ctx.fillText(MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)], x, y - fontSize);
+
+        if (y > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
         }
-      });
-
-      ctx.font = "11px 'JetBrains Mono', monospace";
-      frags.forEach((f) => {
-        f.life -= 1;
-        if (f.life <= 0) {
-          f.x = Math.random() * window.innerWidth;
-          f.y = Math.random() * window.innerHeight;
-          f.text = CODE_FRAGMENTS[Math.floor(Math.random() * CODE_FRAGMENTS.length)];
-          f.life = 40 + Math.random() * 60;
-        }
-        ctx.fillStyle = "rgba(120,230,255,0.35)";
-        ctx.fillText(f.text, f.x, f.y);
-      });
-
-      if (Math.random() < 0.015) {
-        ctx.fillStyle = "rgba(255,60,60,0.06)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drops[i] += speed * (0.6 + Math.random() * 0.5);
       }
-
       raf = requestAnimationFrame(draw);
     };
     draw();
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", setup);
     };
-  }, []);
-  return <canvas ref={canvasRef} className="tunnel-canvas" />;
+  }, [intense]);
+
+  return <canvas ref={canvasRef} className="matrix-rain-canvas" />;
 }
 
 function HexVault() {
@@ -463,10 +439,10 @@ function CommandCenterIntro({ onDone }) {
     const t1 = setTimeout(() => setVaultMsg("VERIFYING IDENTITY..."), 100);
     const t2 = setTimeout(() => setVaultMsg("IDENTITY VERIFIED"), 1000);
     const t3 = setTimeout(() => {
-      setVaultMsg("WELCOME, COMMANDER");
+      setVaultMsg("WELCOME TO MY WORLD");
       if (soundOn && "speechSynthesis" in window) {
         try {
-          const u = new SpeechSynthesisUtterance("Identity verified. Welcome, Commander.");
+          const u = new SpeechSynthesisUtterance("Identity verified. Welcome to my world.");
           u.pitch = 0.75;
           u.rate = 0.95;
           window.speechSynthesis.speak(u);
@@ -501,13 +477,22 @@ function CommandCenterIntro({ onDone }) {
 
   return (
     <div className={`cc-intro cc-${phase}`} style={{ pointerEvents: overlayDone ? "none" : "auto" }}>
+      <MatrixRain intense={phase === "tunnel"} />
+      <div className="cc-scanlines" />
+      <div className="cc-vignette" />
+
       {phase !== "doors" && phase !== "caption" && (
         <button className="cc-skip" onClick={skip}>Skip intro →</button>
       )}
 
       {phase === "gate" && (
         <div className="cc-gate-panel">
-          <div className="cc-gate-pulse" />
+          <div className="cc-gate-rings">
+            <div className="cc-gate-pulse cc-gate-pulse-1" />
+            <div className="cc-gate-pulse cc-gate-pulse-2" />
+            <div className="cc-gate-pulse cc-gate-pulse-3" />
+          </div>
+          <div className="mono cc-gate-eyebrow">RESTRICTED ACCESS · AI OPERATIONS</div>
           <div className="display cc-gate-title">SYSTEM STANDBY</div>
           <button className="cc-enter-btn" onClick={begin}>Click to Initiate</button>
           <button className="cc-sound-toggle" onClick={() => setSoundOn((s) => !s)} aria-label="Toggle sound">
@@ -517,20 +502,35 @@ function CommandCenterIntro({ onDone }) {
       )}
 
       {phase === "boot" && (
-        <div className="cc-terminal mono">
-          {lines.map((l, i) => (
-            <div key={i} className={l === "ACCESS GRANTED." ? "cc-line cc-line-final" : "cc-line"}>{l}</div>
-          ))}
-          <div className="cc-line">{typing}<span className="cc-cursor">_</span></div>
+        <div className="cc-terminal-wrap">
+          <div className="mono cc-terminal-header">NEURAL OS · SECURE SHELL</div>
+          <div className="cc-terminal mono">
+            {lines.map((l, i) => (
+              <div key={i} className={l === "ACCESS GRANTED." ? "cc-line cc-line-final" : "cc-line"}>
+                <span className="cc-line-dot" />{l}
+              </div>
+            ))}
+            <div className="cc-line"><span className="cc-line-dot cc-line-dot-active" />{typing}<span className="cc-cursor">_</span></div>
+          </div>
         </div>
       )}
 
-      {phase === "glitch" && <div className="cc-glitch-panel" />}
+      {phase === "glitch" && (
+        <div className="cc-glitch-panel">
+          <div className="cc-glitch-slice cc-glitch-1" />
+          <div className="cc-glitch-slice cc-glitch-2" />
+          <div className="cc-glitch-slice cc-glitch-3" />
+          <div className="display cc-glitch-text">ACCESS GRANTED</div>
+        </div>
+      )}
 
-      {phase === "tunnel" && <DataTunnel />}
+      {phase === "tunnel" && (
+        <div className="mono cc-tunnel-label">TRAVERSING NETWORK · {">"}150 NODES</div>
+      )}
 
       {phase === "vault" && (
         <div className="cc-vault-wrap">
+          <div className="cc-vault-rays" />
           <HexVault />
           <div className="mono cc-vault-msg">{vaultMsg}</div>
         </div>
@@ -540,6 +540,7 @@ function CommandCenterIntro({ onDone }) {
         <>
           <div className="cc-door cc-door-l" />
           <div className="cc-door cc-door-r" />
+          <div className="cc-door-burst" />
           {phase === "caption" && (
             <div className="cc-caption-box glass">
               <div className="display">This is not a portfolio.</div>
@@ -1428,45 +1429,93 @@ function GlobalStyle() {
       }
       .cc-skip:hover { color: #F3F4F8; border-color: rgba(255,255,255,0.3); }
 
-      .cc-gate-panel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
-      .cc-gate-pulse {
-        width: 90px; height: 90px; border-radius: 50%; border: 1px solid var(--accent, #22D3EE);
-        box-shadow: 0 0 40px var(--accent, #22D3EE); animation: gate-pulse 2.2s ease-in-out infinite;
+      /* persistent hacking-style backdrop */
+      .matrix-rain-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.75; }
+      .cc-scanlines {
+        position: absolute; inset: 0; z-index: 6; pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px);
+        mix-blend-mode: overlay;
       }
-      @keyframes gate-pulse { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.3); opacity: 1; } }
-      .cc-gate-title { font-size: 14px; letter-spacing: 0.3em; color: #8A8FA3; }
+      .cc-vignette {
+        position: absolute; inset: 0; z-index: 7; pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.8) 100%);
+      }
+
+      .cc-gate-panel { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+      .cc-gate-rings { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+      .cc-gate-pulse {
+        position: absolute; border-radius: 50%; border: 1px solid var(--accent, #22D3EE);
+        box-shadow: 0 0 50px var(--accent, #22D3EE); animation: gate-pulse 2.4s ease-in-out infinite;
+      }
+      .cc-gate-pulse-1 { width: 60px; height: 60px; animation-delay: 0s; }
+      .cc-gate-pulse-2 { width: 100px; height: 100px; animation-delay: 0.5s; opacity: 0.7; }
+      .cc-gate-pulse-3 { width: 140px; height: 140px; animation-delay: 1s; opacity: 0.4; }
+      @keyframes gate-pulse { 0%,100% { transform: scale(0.9); opacity: 0.3; } 50% { transform: scale(1.15); opacity: 0.9; } }
+      .cc-gate-eyebrow { font-size: 11px; letter-spacing: 0.28em; color: var(--accent, #22D3EE); opacity: 0.8; }
+      .cc-gate-title {
+        font-size: clamp(22px, 4vw, 34px); letter-spacing: 0.3em; color: #F3F4F8;
+        text-shadow: 0 0 24px var(--accent, #22D3EE), 0 0 60px rgba(34,211,238,0.4);
+      }
       .cc-enter-btn {
         background: linear-gradient(90deg, var(--accent, #22D3EE), var(--accent2, #7C5CFC)); color: #05060A;
-        font-weight: 600; font-size: 14px; padding: 13px 26px; border-radius: 10px; border: none;
+        font-weight: 700; font-size: 14px; padding: 14px 30px; border-radius: 10px; border: none;
+        box-shadow: 0 0 30px rgba(34,211,238,0.4); letter-spacing: 0.05em;
       }
       .cc-sound-toggle { background: transparent; border: none; color: #4a4f63; font-size: 12px; }
 
+      .cc-terminal-wrap { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+      .cc-terminal-header { font-size: 10.5px; letter-spacing: 0.3em; color: #3d4356; }
       .cc-terminal {
-        position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-        width: min(560px, 86vw); font-size: 14px; color: #7ee6ff;
+        width: min(600px, 88vw); font-size: clamp(14px, 2.4vw, 18px); color: #7ee6ff;
+        padding: 26px 30px; border: 1px solid rgba(90,180,255,0.2); border-radius: 8px;
+        background: rgba(6,10,16,0.55); box-shadow: 0 0 60px rgba(34,211,238,0.08), inset 0 0 40px rgba(34,211,238,0.04);
       }
-      .cc-line { padding: 3px 0; opacity: 0.85; }
-      .cc-line-final { color: var(--accent, #22D3EE); font-weight: 600; }
+      .cc-line { padding: 4px 0; opacity: 0.9; text-shadow: 0 0 10px rgba(126,230,255,0.5); display: flex; align-items: center; gap: 10px; }
+      .cc-line-dot { width: 5px; height: 5px; border-radius: 50%; background: #3d4356; flex-shrink: 0; }
+      .cc-line-dot-active { background: var(--accent, #22D3EE); box-shadow: 0 0 8px var(--accent, #22D3EE); animation: gate-pulse 0.8s ease-in-out infinite; }
+      .cc-line-final { color: var(--accent, #22D3EE); font-weight: 700; text-shadow: 0 0 18px var(--accent, #22D3EE); }
+      .cc-line-final .cc-line-dot { background: var(--accent, #22D3EE); box-shadow: 0 0 10px var(--accent, #22D3EE); }
       .cc-cursor { animation: blink 0.9s step-start infinite; }
 
-      .cc-glitch-panel {
-        position: absolute; inset: 0; background: #030405;
-        animation: cc-glitch 0.48s steps(2, end);
+      .cc-glitch-panel { position: absolute; inset: 0; z-index: 5; background: #030405; overflow: hidden; }
+      .cc-glitch-slice {
+        position: absolute; left: 0; right: 0; height: 8%;
+        background: linear-gradient(90deg, transparent, rgba(120,220,255,0.5), rgba(255,80,120,0.4), transparent);
+        animation: cc-slice-shift 0.46s steps(3, end);
       }
-      @keyframes cc-glitch {
-        0% { filter: hue-rotate(0deg); transform: translate(0,0); }
-        20% { transform: translate(-6px, 3px); filter: hue-rotate(90deg); }
-        40% { transform: translate(6px, -3px); filter: hue-rotate(-90deg); }
-        60% { transform: translate(-4px, 0); }
-        80% { transform: translate(4px, 2px); }
-        100% { transform: translate(0,0); filter: hue-rotate(0deg); }
+      .cc-glitch-1 { top: 22%; animation-delay: 0s; }
+      .cc-glitch-2 { top: 48%; animation-delay: 0.06s; }
+      .cc-glitch-3 { top: 71%; animation-delay: 0.12s; }
+      @keyframes cc-slice-shift {
+        0% { transform: translateX(-8%); opacity: 0; }
+        30% { transform: translateX(6%); opacity: 1; }
+        60% { transform: translateX(-4%); }
+        100% { transform: translateX(0); opacity: 0; }
+      }
+      .cc-glitch-text {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        font-size: clamp(28px, 6vw, 56px); color: #fff; letter-spacing: 0.1em;
+        text-shadow: 2px 0 #ff4d6d, -2px 0 #22D3EE, 0 0 40px rgba(255,255,255,0.6);
+        animation: cc-glitch-text-flash 0.48s steps(2, end);
+      }
+      @keyframes cc-glitch-text-flash {
+        0%, 100% { opacity: 0; } 30%, 70% { opacity: 1; } 50% { opacity: 0.4; transform: translate(-52%,-50%); }
       }
 
-      .tunnel-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .cc-tunnel-label {
+        position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 4;
+        font-size: 11.5px; letter-spacing: 0.2em; color: var(--accent, #22D3EE); opacity: 0.8;
+        text-shadow: 0 0 12px var(--accent, #22D3EE);
+      }
 
-      .cc-vault-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
-      .hex-vault { position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
-      .hex-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .cc-vault-wrap { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
+      .cc-vault-rays {
+        position: absolute; width: 480px; height: 480px; border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, rgba(34,211,238,0.12), transparent 20%, transparent 50%, rgba(124,92,252,0.12), transparent 70%);
+        filter: blur(6px); animation: hex-spin-cw 14s linear infinite;
+      }
+      .hex-vault { position: relative; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; }
+      .hex-svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 10px rgba(34,211,238,0.35)); }
       .hex-ring { stroke-width: 0.6; transform-origin: 50% 50%; }
       .hex-a { stroke: var(--accent, #22D3EE); opacity: 0.9; animation: hex-spin-cw 6s linear infinite; }
       .hex-b { stroke: var(--accent2, #7C5CFC); opacity: 0.6; animation: hex-spin-ccw 9s linear infinite; }
@@ -1474,31 +1523,48 @@ function GlobalStyle() {
       @keyframes hex-spin-cw { to { transform: rotate(360deg); } }
       @keyframes hex-spin-ccw { to { transform: rotate(-360deg); } }
       .vault-scanner {
-        width: 120px; height: 120px; border-radius: 50%; overflow: hidden; position: relative;
-        background: radial-gradient(circle, rgba(34,211,238,0.08), transparent); border: 1px solid rgba(255,255,255,0.15);
+        width: 130px; height: 130px; border-radius: 50%; overflow: hidden; position: relative;
+        background: radial-gradient(circle, rgba(34,211,238,0.14), transparent); border: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 0 40px rgba(34,211,238,0.25);
       }
       .scan-line {
         position: absolute; left: 0; right: 0; height: 3px;
         background: linear-gradient(90deg, transparent, var(--accent, #22D3EE), transparent);
-        animation: scan-move 1.6s linear infinite; box-shadow: 0 0 12px var(--accent, #22D3EE);
+        animation: scan-move 1.6s linear infinite; box-shadow: 0 0 16px var(--accent, #22D3EE);
       }
       @keyframes scan-move { 0% { top: 0%; } 100% { top: 100%; } }
-      .cc-vault-msg { font-size: 12.5px; letter-spacing: 0.16em; color: var(--accent, #22D3EE); min-height: 16px; }
+      .cc-vault-msg { font-size: 13.5px; letter-spacing: 0.18em; color: var(--accent, #22D3EE); min-height: 16px; text-shadow: 0 0 14px var(--accent, #22D3EE); }
 
-      .cc-door { position: absolute; top: 0; bottom: 0; width: 50%; background: #030405; z-index: 10; transition: transform 0.9s cubic-bezier(.76,0,.24,1); border-color: rgba(255,255,255,0.06); }
-      .cc-door-l { left: 0; border-right: 1px solid rgba(255,255,255,0.08); }
-      .cc-door-r { right: 0; border-left: 1px solid rgba(255,255,255,0.08); }
+      .cc-door {
+        position: absolute; top: 0; bottom: 0; width: 50%; z-index: 10; transition: transform 0.9s cubic-bezier(.76,0,.24,1);
+        background:
+          repeating-linear-gradient(90deg, rgba(90,180,255,0.04) 0px, rgba(90,180,255,0.04) 1px, transparent 1px, transparent 40px),
+          #030405;
+      }
+      .cc-door-l { left: 0; border-right: 1px solid rgba(90,180,255,0.25); }
+      .cc-door-r { right: 0; border-left: 1px solid rgba(90,180,255,0.25); }
       .cc-doors .cc-door-l, .cc-caption .cc-door-l { transform: translateX(-100%); }
       .cc-doors .cc-door-r, .cc-caption .cc-door-r { transform: translateX(100%); }
+      .cc-door-burst {
+        position: absolute; top: 0; bottom: 0; left: 50%; width: 6px; transform: translateX(-50%);
+        background: linear-gradient(180deg, transparent, #fff, var(--accent, #22D3EE), #fff, transparent);
+        box-shadow: 0 0 60px 10px var(--accent, #22D3EE); z-index: 11;
+        animation: cc-burst-flash 0.9s ease-out forwards;
+      }
+      @keyframes cc-burst-flash {
+        0% { opacity: 0; width: 2px; }
+        20% { opacity: 1; width: 40px; }
+        100% { opacity: 0; width: 400px; }
+      }
 
       .cc-caption-box {
-        position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%);
-        padding: 18px 26px; border-radius: 14px; text-align: center; max-width: 520px;
+        position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%);
+        padding: 22px 30px; border-radius: 14px; text-align: center; max-width: 560px;
         animation: cc-caption-fade 2.2s ease-in-out; z-index: 20;
       }
-      .cc-caption-box .display { font-size: 15px; line-height: 1.5; }
+      .cc-caption-box .display { font-size: clamp(15px, 2vw, 19px); line-height: 1.6; text-shadow: 0 0 20px rgba(34,211,238,0.3); }
       @keyframes cc-caption-fade {
-        0% { opacity: 0; transform: translate(-50%, 10px); }
+        0% { opacity: 0; transform: translate(-50%, 14px); }
         15% { opacity: 1; transform: translate(-50%, 0); }
         80% { opacity: 1; }
         100% { opacity: 0; }
